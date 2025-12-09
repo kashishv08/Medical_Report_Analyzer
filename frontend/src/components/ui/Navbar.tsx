@@ -2,6 +2,12 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, Leaf } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from "@clerk/clerk-react";
 
 export default function Navbar() {
   const [location] = useLocation();
@@ -41,14 +47,12 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Link href="/auth">
-            <Button
-              variant="ghost"
-              className="hidden sm:inline-flex hover:bg-emerald-50 hover:text-emerald-700 font-medium rounded-xl"
-            >
-              Log in
-            </Button>
-          </Link>
+          <SignedOut>
+            <SignInButton />
+          </SignedOut>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
           <Link href="/auth?tab=signup">
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 rounded-xl px-6 transition-all hover:scale-105">
               Get Started

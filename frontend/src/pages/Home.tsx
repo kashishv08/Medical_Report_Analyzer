@@ -1,26 +1,37 @@
-import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
-import { useLocation } from "wouter";
-import { motion } from "framer-motion";
-import {
-  FileText,
-  X,
-  ArrowRight,
-  ShieldCheck,
-  Brain,
-  Activity,
-  Scan,
-  HeartPulse,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useSyncUser } from "@/lib/services/supabase/user/useSyncUser";
+import { motion } from "framer-motion";
+import {
+  Activity,
+  ArrowRight,
+  Brain,
+  FileText,
+  HeartPulse,
+  Scan,
+  ShieldCheck,
+  X,
+} from "lucide-react";
+import { useCallback, useState } from "react";
+import { useDropzone } from "react-dropzone";
 import heroBg from "../assets/abstract_green_medical_dna_background.png";
+import { uploadReportFile } from "@/lib/services/supabase/report/uploadFile";
+import { useReportStore } from "@/store/reportStore";
+import { useUser } from "@clerk/clerk-react";
+import { addReportToDB } from "@/lib/services/supabase/report/addReport";
 
 export default function Home() {
-  const [, setLocation] = useLocation();
+  // const [, setLocation] = useLocation();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { addReport } = useReportStore() as {
+    addReport: (report: unknown) => void;
+  };
+  const { user } = useUser();
+  console.log(user);
+
+  useSyncUser();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(acceptedFiles);
@@ -35,19 +46,45 @@ export default function Home() {
     maxFiles: 1,
   });
 
-  const handleAnalyze = () => {
-    if (files.length === 0) return;
+  const handleAnalyze = async () => {
+    if (files.length === 0 || !user?.id) return;
 
     setUploading(true);
-    let p = 0;
-    const interval = setInterval(() => {
-      p += 2;
-      setProgress(p);
-      if (p >= 100) {
-        clearInterval(interval);
-        setTimeout(() => setLocation("/analysis"), 500);
+    setProgress(10);
+
+    try {
+      const fileUrl = await uploadReportFile(files[0], user.id);
+      console.log(fileUrl);
+      setProgress(40);
+
+      if (!fileUrl) {
+        throw new Error("Failed to upload file");
       }
-    }, 50);
+
+      const newReport = await addReportToDB({
+        user_id: user.id,
+        file_url: fileUrl,
+        report_type: "",
+      });
+      console.log(newReport);
+      setProgress(70);
+
+      addReport({
+        ...(typeof newReport === "object" && newReport !== null
+          ? newReport
+          : {}),
+        ai_result: null,
+      });
+
+      setProgress(100);
+      setTimeout(() => {
+        setUploading(false);
+      }, 500);
+    } catch (err) {
+      console.error(err);
+      setUploading(false);
+      setProgress(0);
+    }
   };
 
   const removeFile = () => {
