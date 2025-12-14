@@ -12,7 +12,8 @@ dist
 dist-ssr
 *.local
 password.txt
-../backend
+../backend/
+
 
 # Editor directories and files
 .vscode/*
