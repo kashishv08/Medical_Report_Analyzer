@@ -21,7 +21,10 @@ export const extractTextFromFile = async (file: File) => {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        text += content.items.map((item: any) => item.str).join(" ") + "\n";
+        text +=
+          content.items
+            .map((item: unknown) => (item as { str: string }).str)
+            .join(" ") + "\n";
       }
 
       // 🧠 if PDF has no text → OCR fallback
@@ -45,7 +48,8 @@ export const extractTextFromFile = async (file: File) => {
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      await page.render({ canvas: canvas, canvasContext: ctx, viewport })
+        .promise;
 
       const blob = await new Promise<Blob>((res) =>
         canvas.toBlob((b) => res(b!), "image/png")
