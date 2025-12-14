@@ -1,20 +1,49 @@
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import "./App.css";
 import Splash from "./pages/Splash";
 import Home from "./pages/Home";
 import Navbar from "./components/ui/Navbar";
 import Analysis from "./pages/Analysis";
 import Dashboard from "./pages/Dashboard";
+import { SignIn, SignUp } from "@clerk/clerk-react";
+import AuthLayout from "./components/layouts/AuthLayout";
+import ProtectedRoute from "./lib/middleware/ProtectedRoute";
 
 function Router() {
+  const [location] = useLocation();
+  const hideNavbar =
+    location.startsWith("/sign-in") ||
+    location.startsWith("sign-up") ||
+    location.startsWith("/analysis");
   return (
     <>
-      <Navbar />
+      <Route path="/sign-in">
+        <AuthLayout>
+          <SignIn routing="path" path="/sign-in" />
+        </AuthLayout>
+      </Route>
+
+      <Route path="/sign-up">
+        <AuthLayout>
+          <SignUp routing="path" path="/sign-up" />
+        </AuthLayout>
+      </Route>
+
+      {!hideNavbar && <Navbar />}
       <Switch>
         <Route path="/" component={Splash} />
         <Route path="/home" component={Home} />
-        <Route path="/analysis" component={Analysis} />
-        <Route path="/dashboard" component={Dashboard} />
+
+        <Route path="/analysis/:id">
+          <ProtectedRoute>
+            <Analysis />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboard">
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        </Route>
       </Switch>
     </>
   );

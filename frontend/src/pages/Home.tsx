@@ -1,6 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { extractTextFromFile } from "@/lib/services/pdfExtract/extractText";
+import { hashedFile } from "@/lib/services/pdfExtract/hashedFile";
+import { analyzeReport } from "@/lib/services/supabase/report/analyzeReport";
+import { uploadReportFile } from "@/lib/services/supabase/report/uploadFile";
+import { supabase } from "@/lib/services/supabase/supabaseclient";
 import { useSyncUser } from "@/lib/services/supabase/user/useSyncUser";
+import { useReportStore } from "@/store/reportStore";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -14,22 +21,18 @@ import {
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
 import heroBg from "../assets/abstract_green_medical_dna_background.png";
-import { uploadReportFile } from "@/lib/services/supabase/report/uploadFile";
-import { useReportStore } from "@/store/reportStore";
-import { useUser } from "@clerk/clerk-react";
-import { addReportToDB } from "@/lib/services/supabase/report/addReport";
 
 export default function Home() {
-  // const [, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { addReport } = useReportStore() as {
-    addReport: (report: unknown) => void;
-  };
+  const { upsertReport } = useReportStore();
   const { user } = useUser();
-  console.log(user);
+  const { isSignedIn } = useAuth();
 
   useSyncUser();
 
@@ -47,41 +50,94 @@ export default function Home() {
   });
 
   const handleAnalyze = async () => {
-    if (files.length === 0 || !user?.id) return;
+    if (!isSignedIn) {
+      setLocation("/sign-in");
+      return;
+    }
+    if (!files.length || !user?.id) return;
 
     setUploading(true);
     setProgress(10);
 
     try {
       const fileUrl = await uploadReportFile(files[0], user.id);
-      console.log(fileUrl);
-      setProgress(40);
-
       if (!fileUrl) {
-        throw new Error("Failed to upload file");
+        toast("File upload failed");
+        return;
+      }
+      setProgress(30);
+      console.log("fileUrl", fileUrl);
+
+      const reportHash = await hashedFile(files[0]);
+      console.log("reportHash", reportHash);
+
+      const { data: existingReport } = await supabase
+        .from("reports")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("report_hash", reportHash)
+        .maybeSingle();
+
+      if (existingReport) {
+        toast("Same Report detected.Updating analysis..");
       }
 
-      const newReport = await addReportToDB({
-        user_id: user.id,
-        file_url: fileUrl,
-        report_type: "",
-      });
-      console.log(newReport);
+      const fileText = await extractTextFromFile(files[0]);
+      if (!fileText || fileText.length < 50) {
+        toast("Invalid or empty PDF text");
+        return;
+      }
+      setProgress(50);
+      console.log("extracted text", fileText.substring(0, 20));
+
+      // 3️⃣ AI Analysis
+      const ai_result = await analyzeReport(fileText);
+      if (!ai_result) {
+        toast("AI analysis failed");
+        return;
+      }
       setProgress(70);
+      console.log("ai res", ai_result);
 
-      addReport({
-        ...(typeof newReport === "object" && newReport !== null
-          ? newReport
-          : {}),
-        ai_result: null,
-      });
+      if (!ai_result.report_type || !ai_result.health_score) {
+        toast("AI analysis incomplete");
+        return;
+      }
 
-      setProgress(100);
-      setTimeout(() => {
-        setUploading(false);
-      }, 500);
+      const { data: savedReport, error } = await supabase
+        .from("reports")
+        .upsert(
+          {
+            id: existingReport?.id,
+            report_hash: reportHash,
+            user_id: user.id,
+            file_url: fileUrl,
+            report_type: ai_result.report_type,
+            ai_result,
+            analyzed: true,
+            uploaded_at: new Date(),
+          },
+          {
+            onConflict: "user_id,report_hash",
+          }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        toast("Saving to DB failed");
+        return;
+      }
+
+      upsertReport(savedReport); //store zustand
+
+      setProgress(90);
+
+      setLocation(`/analysis/${savedReport.id}`);
     } catch (err) {
-      console.error(err);
+      console.error("Analysis failed:", err);
+      toast("Report analysis failed. Please try again.");
+    } finally {
       setUploading(false);
       setProgress(0);
     }
@@ -215,7 +271,7 @@ export default function Home() {
 
                     <Button
                       variant="outline"
-                      className="mt-6 rounded-xl h-12 px-8 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all font-semibold shadow-sm"
+                      className="cursor-pointer mt-6 rounded-xl h-12 px-8 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all font-semibold shadow-sm"
                     >
                       Browse Files
                     </Button>
@@ -243,9 +299,9 @@ export default function Home() {
                             e.stopPropagation();
                             removeFile();
                           }}
-                          className="text-emerald-400 hover:text-red-500 hover:bg-red-50 rounded-xl h-12 w-12"
+                          className="cursor-pointer text-emerald-400 hover:text-red-500 hover:bg-red-50 rounded-xl h-12 w-12"
                         >
-                          <X className="w-6 h-6" />
+                          <X className="w-6 h-6 cursor-pointer" />
                         </Button>
                       )}
                     </div>
@@ -272,7 +328,7 @@ export default function Home() {
                     ) : (
                       <Button
                         size="lg"
-                        className="w-full text-lg h-16 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:to-teal-600 shadow-xl shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold"
+                        className="cursor-pointer w-full text-lg h-16 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:to-teal-600 shadow-xl shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold"
                         onClick={handleAnalyze}
                       >
                         Start Deep Analysis{" "}

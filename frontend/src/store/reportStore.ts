@@ -1,48 +1,61 @@
+import { create } from "zustand";
 import { supabase } from "@/lib/services/supabase/supabaseclient";
 import { ReportSchema } from "@/lib/services/zod/reportValidation";
-import { create } from "zustand";
+import type { reportStoreType, ReportType } from "@/typedef";
 
-export const useReportStore = create((set) => ({
+export const useReportStore = create<reportStoreType>((set, get) => ({
   reports: [],
   loading: false,
 
-  fetchReports: async (userId: unknown) => {
+  fetchReports: async (userId: string) => {
     set({ loading: true });
+
     const { data, error } = await supabase
       .from("reports")
       .select("*")
       .eq("user_id", userId)
       .order("uploaded_at", { ascending: false });
 
-    if (error) {
-      console.error(error);
+    if (error || !data) {
       set({ loading: false });
       return;
     }
 
-    const parsed = data
+    // 🔐 ZOD VALIDATION HERE
+    const safeReports = data
       .map((r) => ReportSchema.safeParse(r))
-      .filter((p) => p.success)
-      .map((p) => p.data);
+      .filter((r) => r.success)
+      .map((r) => r.data);
 
-    set({ reports: parsed, loading: false });
+    set({ reports: safeReports, loading: false });
   },
 
-  addReport: async (report: unknown) => {
+  getReportById: (id: string): ReportType | undefined => {
+    return get().reports.find((r) => r.id === id);
+  },
+
+  upsertReport: (report: ReportType) => {
     const parsed = ReportSchema.safeParse(report);
 
-    console.log("parsed", parsed);
-
     if (!parsed.success) {
-      console.error(error);
+      console.error("Invalid report shape", parsed.error);
       return;
     }
 
-    set((state) => ({
-      reports: [parsed.data, ...state.reports],
-    }));
+    set((state: { reports: ReportType[] }) => {
+      const exists = state.reports.find((r) => r.id === parsed.data.id);
 
-    const { error } = await supabase.from("reports").insert(parsed.data);
-    if (error) console.error(error);
+      if (exists) {
+        return {
+          reports: state.reports.map((r) =>
+            r.id === parsed.data.id ? parsed.data : r
+          ),
+        };
+      }
+
+      return {
+        reports: [parsed.data, ...state.reports],
+      };
+    });
   },
 }));

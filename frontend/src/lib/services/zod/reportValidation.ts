@@ -1,17 +1,28 @@
 import { z } from "zod";
 
+const KeyFindingSchema = z.object({
+  title: z.string(),
+  value: z.string().optional(),
+  note: z.string().optional(),
+  status: z.enum(["normal", "warning", "critical"]),
+});
+
 export const AIResultSchema = z.object({
   summary: z.string(),
-  key_findings: z.array(z.string()),
-  health_score: z.number().min(0).max(100),
+  key_findings: z.array(KeyFindingSchema),
   full_data: z.any(),
-  // explanation: z.string(),
+  patient_name: z.string(),
+  report_date: z.string(),
+  prediction: z.string(),
+  recommendation: z.string(),
+  health_score: z.string(),
 });
 
 export const ReportSchema = z.object({
-  report_type: z.string().optional(),
+  id: z.string(),
+  report_type: z.string(),
   file_url: z.string().url(),
   analyzed: z.boolean().optional().default(false),
   old_report_id: z.string().uuid().optional(),
-  ai_result: AIResultSchema.optional(),
+  ai_result: AIResultSchema,
 });

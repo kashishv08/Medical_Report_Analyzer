@@ -48,16 +48,13 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           <SignedOut>
-            <SignInButton />
+            <div className="cursor-pointer inline-block">
+              <SignInButton />
+            </div>
           </SignedOut>
           <SignedIn>
             <UserButton />
           </SignedIn>
-          <Link href="/auth?tab=signup">
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 rounded-xl px-6 transition-all hover:scale-105">
-              Get Started
-            </Button>
-          </Link>
 
           <Sheet>
             <SheetTrigger asChild>

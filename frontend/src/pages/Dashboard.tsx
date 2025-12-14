@@ -1,31 +1,30 @@
-import { Link } from "wouter";
-import {
-  LayoutGrid,
-  FileText,
-  CreditCard,
-  Settings,
-  LogOut,
-  Plus,
-  Search,
-  MoreVertical,
-  Clock,
-  Activity,
-  Filter,
-  ChevronDown,
-  Leaf,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import dashboardBg from "@/assets/soft_green_geometric_background.png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import dashboardBg from "../assets/soft_green_geometric_background.png";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Activity,
+  ChevronDown,
+  Clock,
+  CreditCard,
+  FileText,
+  Filter,
+  LayoutGrid,
+  Leaf,
+  MoreVertical,
+  Plus,
+  Search,
+  Settings,
+} from "lucide-react";
+import { Link } from "wouter";
 
 const MOCK_REPORTS = [
   {
@@ -80,9 +79,9 @@ const MOCK_REPORTS = [
 
 export default function Dashboard() {
   return (
-    <div className="flex h-screen bg-background overflow-hidden font-sans">
+    <div className="flex h-screen bg-background font-sans relative">
       {/* Sidebar */}
-      <aside className="w-80 hidden md:flex flex-col bg-white/60 backdrop-blur-2xl border-r border-white/40 z-20">
+      <aside className="fixed top-0 left-0 w-80 hidden md:flex flex-col bg-white/60 backdrop-blur-2xl border-r border-white/40 z-20">
         <div className="p-8">
           <Link href="/home">
             <a className="flex items-center gap-3 font-heading font-bold text-2xl text-emerald-950 cursor-pointer group">
@@ -140,20 +139,11 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
-
-          <Link href="/home">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl font-medium px-5"
-            >
-              <LogOut className="w-5 h-5" /> Logout
-            </Button>
-          </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 relative">
+      <main className="ml-80 h-screen flex flex-col relative">
         <div className="absolute inset-0 z-0 opacity-60 pointer-events-none mix-blend-multiply">
           <img
             src={dashboardBg}
@@ -162,7 +152,11 @@ export default function Dashboard() {
           />
         </div>
 
-        <header className="h-24 border-b border-white/40 bg-white/30 backdrop-blur-xl px-10 flex items-center justify-between sticky top-0 z-30">
+        <header
+          className="fixed top-0 left-80 right-0 h-24 px-10 
+  bg-white/30 backdrop-blur-xl border-b border-white/40 z-30 
+  flex items-center justify-between"
+        >
           <div>
             <h1 className="text-3xl font-heading font-bold text-emerald-950">
               Dashboard
@@ -204,7 +198,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="flex-1 p-10 overflow-hidden flex flex-col relative z-10">
+        <div className="flex-1 pt-28 px-10 pb-10 overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
             <div className="flex gap-4">
               <Button
@@ -222,7 +216,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <ScrollArea className="flex-1 -mx-10 px-10">
+          <ScrollArea className="h-full">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8 pb-24">
               {MOCK_REPORTS.map((report) => (
                 <Card
