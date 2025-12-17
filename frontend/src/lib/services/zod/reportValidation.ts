@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const KeyFindingSchema = z.object({
+export const KeyFindingSchema = z.object({
   title: z.string(),
   value: z.string().optional(),
   note: z.string().optional(),

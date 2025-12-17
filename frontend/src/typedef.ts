@@ -1,7 +1,13 @@
 import { z } from "zod";
-import type { ReportSchema } from "./lib/services/zod/reportValidation";
+import type {
+  AIResultSchema,
+  KeyFindingSchema,
+  ReportSchema,
+} from "./lib/services/zod/reportValidation";
 
 export type ReportType = z.infer<typeof ReportSchema>;
+export type KeyFindingType = z.infer<typeof KeyFindingSchema>;
+export type aiResType = z.infer<typeof AIResultSchema>;
 
 export type reportStoreType = {
   reports: ReportType[];

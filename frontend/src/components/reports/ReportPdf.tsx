@@ -1,4 +1,12 @@
-export default function ReportPdf({ ai, pdfRef }) {
+import type { aiResType, KeyFindingType } from "@/typedef";
+
+export default function ReportPdf({
+  ai,
+  pdfRef,
+}: {
+  ai: aiResType;
+  pdfRef: React.RefObject<HTMLDivElement>;
+}) {
   return (
     <div
       ref={pdfRef}
@@ -47,7 +55,7 @@ export default function ReportPdf({ ai, pdfRef }) {
           </tr>
         </thead>
         <tbody>
-          {ai.key_findings?.map((f, i) => (
+          {ai.key_findings?.map((f: KeyFindingType, i: number) => (
             <tr key={i}>
               <td style={cell}>{f.title}</td>
               <td style={cell}>{f.value ?? "-"}</td>
