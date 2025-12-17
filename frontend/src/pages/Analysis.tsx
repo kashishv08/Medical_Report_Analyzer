@@ -27,7 +27,9 @@ export default function Analysis() {
   const [report, setReport] = useState<ReportType>();
   const { getReportById } = useReportStore();
   const { userId } = useAuth();
-  const pdfRef = useRef<HTMLDivElement>(null);
+  const pdfRef = useRef<HTMLDivElement>(
+    null
+  ) as React.RefObject<HTMLDivElement>;
 
   useEffect(() => {
     const fetchReport = () => {
