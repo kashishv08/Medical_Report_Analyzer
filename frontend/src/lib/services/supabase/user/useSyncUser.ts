@@ -6,7 +6,7 @@ import { UserSchema } from "../../zod/userValidations";
 export function useSyncUser() {
   const { user } = useUser();
 
-  console.log(user);
+  // console.log(user);
 
   useEffect(() => {
     const insertData = async () => {

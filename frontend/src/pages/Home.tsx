@@ -125,6 +125,7 @@ export default function Home() {
         .single();
 
       if (error) {
+        console.log(error);
         toast("Saving to DB failed");
         return;
       }

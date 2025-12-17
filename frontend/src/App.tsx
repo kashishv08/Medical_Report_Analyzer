@@ -17,13 +17,13 @@ function Router() {
     location.startsWith("/analysis");
   return (
     <>
-      <Route path="/sign-in">
+      <Route path="/sign-in/:rest*?">
         <AuthLayout>
-          <SignIn routing="path" path="/sign-in" />
+          <SignIn routing="path" path="/sign-in" afterSignInUrl={"/home"} />
         </AuthLayout>
       </Route>
 
-      <Route path="/sign-up">
+      <Route path="/sign-in/:rest*?">
         <AuthLayout>
           <SignUp routing="path" path="/sign-up" />
         </AuthLayout>
@@ -39,7 +39,7 @@ function Router() {
             <Analysis />
           </ProtectedRoute>
         </Route>
-        <Route path="/dashboard">
+        <Route path="/dashboard/:id">
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>

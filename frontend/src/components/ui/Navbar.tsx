@@ -1,16 +1,18 @@
-import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, Leaf } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   SignedIn,
   SignedOut,
   SignInButton,
+  useAuth,
   UserButton,
 } from "@clerk/clerk-react";
+import { LayoutPanelLeft, Leaf, Menu } from "lucide-react";
+import { Link, useLocation } from "wouter";
 
 export default function Navbar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { userId } = useAuth();
 
   if (location === "/" || location.startsWith("/dashboard")) return null;
 
@@ -53,7 +55,15 @@ export default function Navbar() {
             </div>
           </SignedOut>
           <SignedIn>
-            <UserButton />
+            <UserButton>
+              <UserButton.MenuItems>
+                <UserButton.Action
+                  label="Dashboard"
+                  labelIcon={<LayoutPanelLeft size={17} />}
+                  onClick={() => setLocation(`/dashboard/${userId}`)}
+                />
+              </UserButton.MenuItems>
+            </UserButton>
           </SignedIn>
 
           <Sheet>

@@ -6,7 +6,8 @@ export type ReportType = z.infer<typeof ReportSchema>;
 export type reportStoreType = {
   reports: ReportType[];
   loading: boolean;
-  fetchReports: (userId: string) => Promise<void>;
+  loadReports: (userId: string) => Promise<void>;
   getReportById: (id: string) => ReportType | undefined;
   upsertReport: (report: ReportType) => void;
+  selectUserReports: (userId: string) => void;
 };

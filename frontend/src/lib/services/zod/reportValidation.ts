@@ -20,9 +20,10 @@ export const AIResultSchema = z.object({
 
 export const ReportSchema = z.object({
   id: z.string(),
+  user_id: z.string(),
   report_type: z.string(),
   file_url: z.string().url(),
   analyzed: z.boolean().optional().default(false),
-  old_report_id: z.string().uuid().optional(),
+  old_report_id: z.string().uuid().optional().nullable(),
   ai_result: AIResultSchema,
 });

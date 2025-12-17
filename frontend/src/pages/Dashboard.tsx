@@ -1,5 +1,5 @@
 import dashboardBg from "@/assets/soft_green_geometric_background.png";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useReportStore } from "@/store/reportStore";
+import type { ReportType } from "@/typedef";
+import { SignedIn, UserButton, useUser } from "@clerk/clerk-react";
 import {
   Activity,
   ChevronDown,
@@ -24,60 +27,39 @@ import {
   Search,
   Settings,
 } from "lucide-react";
-import { Link } from "wouter";
+import { useEffect } from "react";
+import { Link, useRoute } from "wouter";
 
-const MOCK_REPORTS = [
-  {
-    id: 1,
-    name: "Blood Test Results - Jan 2025",
-    date: "Today, 10:23 AM",
-    type: "PDF",
-    status: "Analyzed",
-    color: "bg-emerald-500",
-  },
-  {
-    id: 2,
-    name: "MRI Scan Report - Knee",
-    date: "Yesterday, 4:15 PM",
-    type: "IMG",
-    status: "Analyzed",
-    color: "bg-teal-500",
-  },
-  {
-    id: 3,
-    name: "General Checkup Summary",
-    date: "Dec 28, 2024",
-    type: "PDF",
-    status: "Processing",
-    color: "bg-lime-500",
-  },
-  {
-    id: 4,
-    name: "Prescription - Dr. Smith",
-    date: "Dec 15, 2024",
-    type: "IMG",
-    status: "Analyzed",
-    color: "bg-green-600",
-  },
-  {
-    id: 5,
-    name: "Lipid Profile",
-    date: "Nov 02, 2024",
-    type: "PDF",
-    status: "Analyzed",
-    color: "bg-emerald-400",
-  },
-  {
-    id: 6,
-    name: "Vaccination Record",
-    date: "Oct 20, 2024",
-    type: "PDF",
-    status: "Analyzed",
-    color: "bg-teal-400",
-  },
-];
+const REPORT_COLORS = [
+  "bg-emerald-500",
+  "bg-teal-500",
+  "bg-lime-500",
+  "bg-green-600",
+  "bg-emerald-400",
+  "bg-teal-400",
+] as const;
 
 export default function Dashboard() {
+  const [, params] = useRoute<{ id: string }>("/dashboard/:id");
+  console.log(params?.id);
+  const { loadReports, selectUserReports } = useReportStore();
+  // const [, setLocation] = useLocation();
+  const { user } = useUser();
+
+  useEffect(() => {
+    const fetchReport = async () => {
+      if (params?.id) {
+        await loadReports(params.id);
+      }
+    };
+    fetchReport();
+  }, [params?.id]);
+
+  const reports =
+    (params?.id ? selectUserReports(params?.id) : ([] as ReportType[])) ??
+    ([] as ReportType[]);
+  console.log(reports);
+
   return (
     <div className="flex h-screen bg-background font-sans relative">
       {/* Sidebar */}
@@ -162,7 +144,7 @@ export default function Dashboard() {
               Dashboard
             </h1>
             <p className="text-emerald-800/60 font-medium text-sm">
-              Welcome back, John
+              Welcome back, {user?.fullName}
             </p>
           </div>
           <div className="flex items-center gap-6">
@@ -184,16 +166,17 @@ export default function Dashboard() {
             <div className="flex items-center gap-4 pl-6 border-l border-emerald-900/10">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold leading-none text-emerald-950">
-                  John Doe
+                  {user?.fullName}
                 </p>
                 <p className="text-xs text-emerald-600 font-bold mt-1 bg-emerald-100 px-2 py-0.5 rounded-full inline-block">
                   Pro Member
                 </p>
               </div>
-              <Avatar className="h-12 w-12 border-4 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform ring-2 ring-emerald-100">
-                <AvatarImage src="https://github.com/shadcn.png" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
+              {
+                <SignedIn>
+                  <UserButton />
+                </SignedIn>
+              }
             </div>
           </div>
         </header>
@@ -218,84 +201,91 @@ export default function Dashboard() {
 
           <ScrollArea className="h-full">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8 pb-24">
-              {MOCK_REPORTS.map((report) => (
-                <Card
-                  key={report.id}
-                  className="group p-6 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] transition-all duration-300 cursor-pointer border-white/60 bg-white/70 backdrop-blur-xl rounded-[2rem] hover:-translate-y-2 relative overflow-hidden ring-1 ring-white/50"
-                >
-                  <div
-                    className={`absolute top-0 left-0 w-1.5 h-full ${report.color} opacity-60`}
-                  />
+              {reports.map((report: ReportType, index: number) => {
+                const color = REPORT_COLORS[index % REPORT_COLORS.length];
 
-                  <div className="flex items-start justify-between mb-8">
+                return (
+                  <Card
+                    key={report.id}
+                    className="group p-6 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] transition-all duration-300 cursor-pointer border-white/60 bg-white/70 backdrop-blur-xl rounded-[2rem] hover:-translate-y-2 relative overflow-hidden ring-1 ring-white/50"
+                  >
                     <div
-                      className={`w-14 h-14 rounded-2xl ${report.color} bg-opacity-10 flex items-center justify-center text-foreground group-hover:scale-110 transition-transform duration-300 ring-4 ring-white`}
-                    >
-                      <FileText
-                        className={`w-7 h-7 ${report.color.replace(
-                          "bg-",
-                          "text-"
-                        )}`}
-                      />
+                      className={`absolute top-0 left-0 w-1.5 h-full ${color} opacity-60`}
+                    />
+
+                    <div className="flex items-start justify-between mb-8">
+                      <div
+                        className={`w-14 h-14 rounded-2xl ${color} bg-opacity-10 flex items-center justify-center text-foreground group-hover:scale-110 transition-transform duration-300 ring-4 ring-white`}
+                      >
+                        <FileText
+                          className={`w-7 h-7 ${color.replace("bg-", "text-")}`}
+                        />
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 text-emerald-900/40 hover:bg-white hover:text-emerald-900 rounded-full"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl">
+                          <DropdownMenuItem>
+                            <Link href={`/analysis/${report.id}`}>
+                              View Analysis
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>Download Original</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 text-emerald-900/40 hover:bg-white hover:text-emerald-900 rounded-full"
-                        >
-                          <MoreVertical className="w-5 h-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl">
-                        <DropdownMenuItem>View Analysis</DropdownMenuItem>
-                        <DropdownMenuItem>Download Original</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
 
-                  <h3 className="font-bold text-xl truncate mb-2 text-emerald-950 group-hover:text-emerald-600 transition-colors">
-                    {report.name}
-                  </h3>
+                    <h3 className="font-bold text-xl truncate mb-2 text-emerald-950 group-hover:text-emerald-600 transition-colors">
+                      {report.report_type}
+                    </h3>
 
-                  <div className="flex items-center justify-between text-xs text-emerald-800/60 mb-8 font-medium">
-                    <div className="flex items-center gap-1.5 bg-white/60 px-3 py-1.5 rounded-lg border border-white/50">
-                      <Clock className="w-3.5 h-3.5" /> {report.date}
+                    <div className="flex items-center justify-between text-xs text-emerald-800/60 mb-8 font-medium">
+                      <div className="flex items-center gap-1.5 bg-white/60 px-3 py-1.5 rounded-lg border border-white/50">
+                        <Clock className="w-3.5 h-3.5" />{" "}
+                        {report.ai_result.report_date}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between mt-auto">
-                    <span
-                      className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
-                        report.status === "Analyzed"
-                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                          : "bg-amber-100 text-amber-700 border-amber-200"
-                      }`}
-                    >
-                      {report.status}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 font-bold group-hover:translate-x-1 transition-transform rounded-xl"
-                    >
-                      View <Activity className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                    <div className="flex items-center justify-between mt-auto">
+                      <span
+                        className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
+                          report.analyzed === true
+                            ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                            : "bg-amber-100 text-amber-700 border-amber-200"
+                        }`}
+                      >
+                        {report.analyzed && "Analyzed"}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="cursor-pointer text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 font-bold group-hover:translate-x-1 transition-transform rounded-xl"
+                        onClick={() => window.open(report.file_url, "_blank")}
+                      >
+                        View <Activity className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
 
               {/* Add New Placeholder Card */}
               <Link href="/home">
-                <div className="border-3 border-dashed border-emerald-200/50 rounded-[2rem] flex flex-col items-center justify-center p-6 min-h-[260px] cursor-pointer hover:border-emerald-400/50 hover:bg-emerald-50/20 transition-all group">
+                <div className=" border-3 border-dashed border-emerald-200/50 rounded-[2rem] flex flex-col items-center justify-center p-6 min-h-[260px] cursor-pointer hover:border-emerald-400/50 hover:bg-emerald-50/20 transition-all group">
                   <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform group-hover:bg-white group-hover:shadow-lg">
                     <Plus className="w-8 h-8 text-emerald-400 group-hover:text-emerald-600 transition-colors" />
                   </div>
-                  <p className="font-bold text-emerald-800/50 group-hover:text-emerald-700 transition-colors text-lg">
+                  <p className="cursor-pointer font-bold text-emerald-800/50 group-hover:text-emerald-700 transition-colors text-lg">
                     Upload New Report
                   </p>
                 </div>

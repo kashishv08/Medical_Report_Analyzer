@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/services/supabase/supabaseclient";
 import { useReportStore } from "@/store/reportStore";
 import type { ReportType } from "@/typedef";
-import { SignedIn, UserButton } from "@clerk/clerk-react";
+import { SignedIn, useAuth, UserButton } from "@clerk/clerk-react";
 import {
   Activity,
   AlertTriangle,
@@ -15,14 +15,19 @@ import {
   HeartPulse,
   Lock,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useRoute } from "wouter";
 import dashboardBg from "../assets/subtle_medical_data_grid_background.png";
+import ReportPdf from "@/components/reports/ReportPdf";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 export default function Analysis() {
   const [, params] = useRoute("/analysis/:id");
   const [report, setReport] = useState<ReportType>();
   const { getReportById } = useReportStore();
+  const { userId } = useAuth();
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchReport = () => {
@@ -64,6 +69,29 @@ export default function Analysis() {
       ? "from-orange-400 to-orange-300"
       : "from-red-500 to-red-400";
 
+  const handleDownload = async () => {
+    if (!pdfRef.current) return;
+
+    // Small delay so layout + fonts settle
+    await new Promise((r) => setTimeout(r, 300));
+
+    const canvas = await html2canvas(pdfRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const imgWidth = 210;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    pdf.save("Medical_Report.pdf");
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 font-sans relative top-0">
       <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
@@ -78,7 +106,7 @@ export default function Analysis() {
         <header className="w-full bg-white/70 backdrop-blur-md shadow-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 h-20 flex items-center justify-between">
             <div className="flex justify-center  gap-4">
-              <Link href="/dashboard">
+              <Link href={`/dashboard/${userId}`}>
                 <a>
                   <Button
                     variant="ghost"
@@ -110,10 +138,21 @@ export default function Analysis() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-3">
+              <div
+                style={{
+                  position: "absolute",
+                  top: "-9999px",
+                  left: "-9999px",
+                }}
+              >
+                <ReportPdf ai={ai} pdfRef={pdfRef} />
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"
-                className="hidden sm:flex gap-2 rounded-xl bg-white/50 backdrop-blur-sm border-white/40"
+                className=" cursor-pointer hidden sm:flex gap-2 rounded-xl bg-white/50 backdrop-blur-sm border-white/40"
+                onClick={handleDownload}
               >
                 <Download className="w-4 h-4" /> PDF
               </Button>
