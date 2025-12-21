@@ -17,6 +17,10 @@ export function useSyncUser() {
         email: user.primaryEmailAddress?.emailAddress,
         name: user.fullName,
         dob: "",
+        stripe_customer_id: "",
+        subscription_end: "",
+        subscription_start: "",
+        stripe_subscription_id: "",
       };
 
       const parsed = UserSchema.safeParse(userObj);
@@ -30,6 +34,11 @@ export function useSyncUser() {
         email: user.primaryEmailAddress?.emailAddress,
         name: user.fullName,
         dob: null,
+        stripe_customer_id: null,
+        subscription_end: null,
+        subscription_start: null,
+        subscription_status: false,
+        stripe_subscription_id: null,
       });
     };
 

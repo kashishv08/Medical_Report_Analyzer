@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import AuthLayout from "./components/layouts/AuthLayout";
 import ProtectedRoute from "./lib/middleware/ProtectedRoute";
+import Pricing from "./pages/Pricing";
 
 function Router() {
   const [location] = useLocation();
@@ -42,6 +43,11 @@ function Router() {
         <Route path="/dashboard/:id">
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path={"/pricing"}>
+          <ProtectedRoute>
+            <Pricing />
           </ProtectedRoute>
         </Route>
       </Switch>

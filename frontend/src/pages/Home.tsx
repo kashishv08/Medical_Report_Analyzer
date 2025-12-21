@@ -19,11 +19,13 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import heroBg from "../assets/abstract_green_medical_dna_background.png";
+import type { ReportType } from "@/typedef";
+import { useUserStore } from "@/store/userStore";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -33,21 +35,48 @@ export default function Home() {
   const { upsertReport } = useReportStore();
   const { user } = useUser();
   const { isSignedIn } = useAuth();
+  const { isPremium } = useUserStore();
 
   useSyncUser();
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles(acceptedFiles);
-  }, []);
+  const { loadReports, selectUserReports } = useReportStore();
+  useEffect(() => {
+    const fetchReport = async () => {
+      if (user?.id) {
+        await loadReports(user.id); //store
+        // console.log(d);
+      }
+    };
+    fetchReport();
+  }, [user?.id]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "application/pdf": [".pdf"],
-      "image/*": [".png", ".jpg", ".jpeg"],
-    },
-    maxFiles: 1,
-  });
+  const reports =
+    (user?.id ? selectUserReports(user?.id) : ([] as ReportType[])) ??
+    ([] as ReportType[]);
+  console.log(reports);
+
+  const MAX_BASIC_REPORTS = 3;
+
+  function canUserAnalyzeReport({
+    reports,
+    isPremium,
+  }: {
+    reports: { uploaded_at: string | Date }[];
+    isPremium: boolean;
+  }) {
+    if (isPremium) return true;
+
+    const now = new Date();
+
+    const currentMonthCount = reports.filter((report) => {
+      const d = new Date(report.uploaded_at);
+      return (
+        d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      );
+    }).length;
+
+    return currentMonthCount < MAX_BASIC_REPORTS;
+  }
 
   const handleAnalyze = async () => {
     if (!isSignedIn) {
@@ -55,6 +84,16 @@ export default function Home() {
       return;
     }
     if (!files.length || !user?.id) return;
+
+    const allowed = canUserAnalyzeReport({
+      reports,
+      isPremium: isPremium(),
+    });
+
+    if (!allowed) {
+      toast("Free plan limit reached (3 reports/month). Upgrade to continue.");
+      return;
+    }
 
     setUploading(true);
     setProgress(10);
@@ -143,6 +182,19 @@ export default function Home() {
       setProgress(0);
     }
   };
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    setFiles(acceptedFiles);
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/pdf": [".pdf"],
+      "image/*": [".png", ".jpg", ".jpeg"],
+    },
+    maxFiles: 1,
+  });
 
   const removeFile = () => {
     setFiles([]);

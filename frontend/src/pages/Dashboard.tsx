@@ -11,24 +11,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReportStore } from "@/store/reportStore";
+import { useUserStore } from "@/store/userStore";
 import type { ReportType } from "@/typedef";
 import { SignedIn, UserButton, useUser } from "@clerk/clerk-react";
 import {
   Activity,
-  ChevronDown,
   Clock,
   CreditCard,
   FileText,
-  Filter,
-  LayoutGrid,
   Leaf,
   MoreVertical,
   Plus,
   Search,
-  Settings,
 } from "lucide-react";
-import { useEffect } from "react";
-import { Link, useRoute } from "wouter";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useRoute } from "wouter";
 
 const REPORT_COLORS = [
   "bg-emerald-500",
@@ -41,15 +38,27 @@ const REPORT_COLORS = [
 
 export default function Dashboard() {
   const [, params] = useRoute<{ id: string }>("/dashboard/:id");
-  console.log(params?.id);
   const { loadReports, selectUserReports } = useReportStore();
-  // const [, setLocation] = useLocation();
+  const { fetchUserById } = useUserStore();
   const { user } = useUser();
+  const isPremium = useUserStore((s) => s.isPremium());
+  const userFromDb = useUserStore((s) => s.user);
+  const [, setLocation] = useLocation();
+  const [search, setSearch] = useState("");
+
+  // console.log(userFromDb);
+  // console.log(isPremium);
+
+  const loadingUser = useUserStore((s) => s.loading);
+
+  useEffect(() => {
+    if (user?.id) fetchUserById(user.id);
+  }, [user?.id]);
 
   useEffect(() => {
     const fetchReport = async () => {
       if (params?.id) {
-        await loadReports(params.id);
+        await loadReports(params.id); //store
       }
     };
     fetchReport();
@@ -58,7 +67,32 @@ export default function Dashboard() {
   const reports =
     (params?.id ? selectUserReports(params?.id) : ([] as ReportType[])) ??
     ([] as ReportType[]);
-  console.log(reports);
+  // console.log(reports);
+
+  const subscriptionEnd = userFromDb?.subscription_end
+    ? new Date(userFromDb.subscription_end)
+    : null;
+
+  const now = new Date().getTime();
+
+  const daysLeft = subscriptionEnd
+    ? Math.max(
+        0,
+        Math.ceil((subscriptionEnd.getTime() - now) / (1000 * 60 * 60 * 24))
+      )
+    : 0;
+
+  const filterReports = reports.filter((r) => {
+    return r.report_type.toLowerCase().includes(search.toLowerCase());
+  });
+
+  if (loadingUser) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <p className="text-emerald-700 font-bold">Loading dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background font-sans relative">
@@ -75,50 +109,91 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <nav className="flex-1 px-6 space-y-3 py-4">
-          <Button
+        <div className="flex flex-col h-full gap-30">
+          <nav className="flex-1 px-6 space-y-3 py-4">
+            <Button
+              variant="ghost"
+              className="cursor-pointer w-full justify-start gap-3 px-5 py-6 bg-emerald-100/50 text-emerald-800 font-bold rounded-2xl hover:bg-emerald-100 transition-all"
+            >
+              <FileText className="w-5 h-5" /> My Reports
+            </Button>
+            {/* <Button
             variant="ghost"
-            className="w-full justify-start gap-3 px-5 py-6 bg-emerald-100/50 text-emerald-800 font-bold rounded-2xl hover:bg-emerald-100 transition-all"
-          >
-            <LayoutGrid className="w-5 h-5" /> Dashboard
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 px-5 py-6 text-emerald-900/60 hover:bg-white/60 rounded-2xl transition-all font-medium hover:text-emerald-900 hover:scale-[1.02]"
-          >
-            <FileText className="w-5 h-5" /> My Reports
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 px-5 py-6 text-emerald-900/60 hover:bg-white/60 rounded-2xl transition-all font-medium hover:text-emerald-900 hover:scale-[1.02]"
-          >
-            <CreditCard className="w-5 h-5" /> Subscriptions
-          </Button>
-          <Button
+            className="cursor-pointer w-full justify-start gap-3 px-5 py-6 text-emerald-900/60 hover:bg-white/60 rounded-2xl transition-all font-medium hover:text-emerald-900 hover:scale-[1.02]"
+          ></Button> */}
+            <Button
+              variant="ghost"
+              className="cursor-pointer w-full justify-start gap-3 px-5 py-6 text-emerald-900/60 hover:bg-white/60 rounded-2xl transition-all font-medium hover:text-emerald-900 hover:scale-[1.02]"
+              onClick={() => setLocation("/pricing")}
+            >
+              <CreditCard className="w-5 h-5" /> Subscriptions
+            </Button>
+            {/* <Button
             variant="ghost"
             className="w-full justify-start gap-3 px-5 py-6 text-emerald-900/60 hover:bg-white/60 rounded-2xl transition-all font-medium hover:text-emerald-900 hover:scale-[1.02]"
           >
             <Settings className="w-5 h-5" /> Settings
-          </Button>
-        </nav>
+          </Button> */}
+          </nav>
 
-        <div className="p-6">
-          <div className="bg-gradient-to-br from-emerald-600 to-teal-500 rounded-[1.5rem] p-6 text-white shadow-xl shadow-emerald-900/10 mb-6 relative overflow-hidden group cursor-pointer">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl group-hover:scale-150 transition-transform duration-700" />
-            <div className="relative z-10">
-              <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-                <Leaf className="w-4 h-4" /> Pro Plan
-              </h4>
-              <p className="text-emerald-100 text-sm mb-4 font-medium opacity-90">
-                Unlock advanced DNA analysis & storage.
-              </p>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="w-full bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-sm rounded-xl"
-              >
-                Upgrade
-              </Button>
+          <div className="p-6 flex items-end">
+            <div className="bg-gradient-to-br from-emerald-600 to-teal-500 rounded-[1.5rem] p-6 text-white shadow-xl shadow-emerald-900/10 mb-6 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl group-hover:scale-150 transition-transform duration-700" />
+
+              <div className="relative z-10">
+                <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
+                  <Leaf className="w-4 h-4" /> Pro Plan
+                </h4>
+
+                {/* 🔹 SUBTEXT */}
+                {isPremium ? (
+                  <p className="text-emerald-100 text-sm mb-2 font-medium">
+                    {userFromDb?.subscription_plan === "yearly"
+                      ? "Yearly subscription active"
+                      : "Monthly subscription active"}
+                  </p>
+                ) : (
+                  <p className="text-emerald-100 text-sm mb-4 font-medium opacity-90">
+                    Unlock advanced DNA analysis & storage.
+                  </p>
+                )}
+
+                {/* 🔹 DATE INFO */}
+                {isPremium && subscriptionEnd && (
+                  <div className="text-sm text-emerald-100 mb-4 space-y-1">
+                    <p>
+                      Ends on{" "}
+                      <span className="font-semibold">
+                        {subscriptionEnd.toDateString()}
+                      </span>
+                    </p>
+                    <p className="font-bold">
+                      {daysLeft > 0
+                        ? `${daysLeft} days remaining`
+                        : "Subscription expired"}
+                    </p>
+                  </div>
+                )}
+
+                {/* 🔹 BUTTON LOGIC */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="w-full bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-sm rounded-xl"
+                  asChild
+                >
+                  {isPremium ? (
+                    daysLeft > 0 ? (
+                      // <Link href="/billing">Manage Subscription</Link>
+                      ""
+                    ) : (
+                      <Link href="/pricing">Renew Subscription</Link>
+                    )
+                  ) : (
+                    <Link href="/pricing">Upgrade</Link>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -142,6 +217,11 @@ export default function Dashboard() {
           <div>
             <h1 className="text-3xl font-heading font-bold text-emerald-950">
               Dashboard
+              {isPremium && (
+                <span className="ml-3 text-sm bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">
+                  PRO
+                </span>
+              )}
             </h1>
             <p className="text-emerald-800/60 font-medium text-sm">
               Welcome back, {user?.fullName}
@@ -153,6 +233,8 @@ export default function Dashboard() {
               <Input
                 placeholder="Search medical records..."
                 className="pl-12 h-12 bg-white/60 border-white/40 focus:bg-white transition-all rounded-2xl focus:ring-2 ring-emerald-500/20 text-emerald-900 placeholder:text-emerald-800/40"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <Button
@@ -168,9 +250,17 @@ export default function Dashboard() {
                 <p className="text-sm font-bold leading-none text-emerald-950">
                   {user?.fullName}
                 </p>
-                <p className="text-xs text-emerald-600 font-bold mt-1 bg-emerald-100 px-2 py-0.5 rounded-full inline-block">
-                  Pro Member
-                </p>
+                {userFromDb?.subscription_status ? (
+                  <p className="text-xs text-emerald-600 font-bold mt-1 bg-emerald-100 px-2 py-0.5 rounded-full inline-block">
+                    {userFromDb.subscription_plan === "yearly"
+                      ? "Pro • Yearly"
+                      : "Pro • Monthly"}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-600 font-bold mt-1 bg-gray-100 px-2 py-0.5 rounded-full inline-block">
+                    Free Plan
+                  </p>
+                )}
               </div>
               {
                 <SignedIn>
@@ -181,18 +271,18 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="flex-1 pt-28 px-10 pb-10 overflow-hidden">
+        <div className="flex-1 pt-28 px-10 pb-10 overflow-hidden mr-[160px]">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
             <div className="flex gap-4">
-              <Button
+              {/* <Button
                 variant="outline"
                 className="gap-2 bg-white/60 border-white/60 backdrop-blur-md rounded-2xl h-12 px-6 hover:bg-white hover:border-white text-emerald-900 shadow-sm font-medium"
               >
                 <Filter className="w-4 h-4" /> Filter{" "}
                 <ChevronDown className="w-3 h-3 opacity-50" />
-              </Button>
+              </Button> */}
               <Link href="/home">
-                <Button className="gap-2 shadow-xl shadow-emerald-600/20 bg-emerald-600 hover:bg-emerald-700 border-none rounded-2xl h-12 px-6 hover:scale-105 transition-transform font-bold text-white">
+                <Button className="cursor-pointer gap-2 shadow-xl shadow-emerald-600/20 bg-emerald-600 hover:bg-emerald-700 border-none rounded-2xl h-12 px-6 hover:scale-105 transition-transform font-bold text-white">
                   <Plus className="w-5 h-5" /> Upload New
                 </Button>
               </Link>
@@ -201,7 +291,10 @@ export default function Dashboard() {
 
           <ScrollArea className="h-full">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8 pb-24">
-              {reports.map((report: ReportType, index: number) => {
+              {filterReports.length === 0 && (
+                <p className="text-emerald-800/60 text-lg">No reports found</p>
+              )}
+              {filterReports?.map((report: ReportType, index: number) => {
                 const color = REPORT_COLORS[index % REPORT_COLORS.length];
 
                 return (
@@ -221,28 +314,39 @@ export default function Dashboard() {
                           className={`w-7 h-7 ${color.replace("bg-", "text-")}`}
                         />
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-10 w-10 text-emerald-900/40 hover:bg-white hover:text-emerald-900 rounded-full"
+                      <button className="cursor-pointer">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 text-emerald-900/40 hover:bg-white hover:text-emerald-900 rounded-full"
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="rounded-xl"
                           >
-                            <MoreVertical className="w-5 h-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl">
-                          <DropdownMenuItem>
-                            <Link href={`/analysis/${report.id}`}>
-                              View Analysis
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>Download Original</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem>
+                              <Link href={`/analysis/${report.id}`}>
+                                View Analysis
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <button
+                                onClick={() => window.open(report.file_url)}
+                              >
+                                View Original
+                              </button>
+                            </DropdownMenuItem>
+                            {/* <DropdownMenuItem className="text-destructive">
+                              Delete
+                            </DropdownMenuItem> */}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </button>
                     </div>
 
                     <h3 className="font-bold text-xl truncate mb-2 text-emerald-950 group-hover:text-emerald-600 transition-colors">
@@ -270,7 +374,7 @@ export default function Dashboard() {
                         size="sm"
                         variant="ghost"
                         className="cursor-pointer text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 font-bold group-hover:translate-x-1 transition-transform rounded-xl"
-                        onClick={() => window.open(report.file_url, "_blank")}
+                        onClick={() => setLocation(`/analysis/${report.id}`)}
                       >
                         View <Activity className="w-4 h-4 ml-1" />
                       </Button>

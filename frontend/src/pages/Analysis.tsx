@@ -1,9 +1,15 @@
+import { DetailedBiomarkerContent } from "@/components/reports/DetailedBiomarkerContent";
+import { LockedOverlay } from "@/components/reports/LockedOverlay";
+import ReportPdf from "@/components/reports/ReportPdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/services/supabase/supabaseclient";
 import { useReportStore } from "@/store/reportStore";
+import { useUserStore } from "@/store/userStore";
 import type { ReportType } from "@/typedef";
-import { SignedIn, useAuth, UserButton } from "@clerk/clerk-react";
+import { SignedIn, useAuth, UserButton, useUser } from "@clerk/clerk-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import {
   Activity,
   AlertTriangle,
@@ -12,15 +18,11 @@ import {
   CheckCircle2,
   Download,
   FileText,
-  HeartPulse,
-  Lock,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Link, useRoute } from "wouter";
 import dashboardBg from "../assets/subtle_medical_data_grid_background.png";
-import ReportPdf from "@/components/reports/ReportPdf";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 export default function Analysis() {
   const [, params] = useRoute("/analysis/:id");
@@ -30,6 +32,13 @@ export default function Analysis() {
   const pdfRef = useRef<HTMLDivElement>(
     null
   ) as React.RefObject<HTMLDivElement>;
+  const { user } = useUser();
+
+  const { fetchUserById } = useUserStore();
+
+  useEffect(() => {
+    if (user?.id) fetchUserById(user.id);
+  }, [user?.id]);
 
   useEffect(() => {
     const fetchReport = () => {
@@ -51,6 +60,19 @@ export default function Analysis() {
     };
     fetchReport();
   }, [params?.id]);
+
+  const userFromDB = useUserStore((s) => s.user);
+
+  const isPremium = userFromDB?.subscription_status;
+  const subscriptionEnd = userFromDB?.subscription_end
+    ? new Date(userFromDB.subscription_end)
+    : null;
+
+  const now = new Date().getTime();
+  const isExpired = subscriptionEnd ? subscriptionEnd.getTime() < now : false;
+
+  const canViewFullReport = isPremium && !isExpired;
+  // const fullData = canViewFullReport ? report?.ai_result.full_data : null;
 
   if (!report) return <div>Loading analysis...</div>;
 
@@ -113,7 +135,7 @@ export default function Analysis() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-full hover:bg-primary/10"
+                    className="cursor-pointer rounded-full hover:bg-primary/10"
                   >
                     <ArrowLeft className="w-6 h-6 text-foreground" />
                   </Button>
@@ -152,9 +174,16 @@ export default function Analysis() {
 
               <Button
                 variant="outline"
+                className="cursor-pointer"
                 size="sm"
-                className=" cursor-pointer hidden sm:flex gap-2 rounded-xl bg-white/50 backdrop-blur-sm border-white/40"
-                onClick={handleDownload}
+                // disabled={!canViewFullReport}
+                onClick={() => {
+                  if (!canViewFullReport) {
+                    toast("Upgrade to Premium to download full report PDF");
+                    return;
+                  }
+                  handleDownload();
+                }}
               >
                 <Download className="w-4 h-4" /> PDF
               </Button>
@@ -209,6 +238,27 @@ export default function Analysis() {
               <Brain className="w-4 h-4" /> MEDISCAN-NEURAL-V2
             </div>
           </Card>
+
+          {isPremium && !isExpired && subscriptionEnd && (
+            <div className="p-6 w-[100%]">
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-500 rounded-[1.5rem] p-6 text-white shadow-xl shadow-emerald-900/20 relative overflow-hidden group">
+                {/* Decorative Blur Circle */}
+                <div className="absolute top-0 right-0 w-42 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl group-hover:scale-150 transition-transform duration-700" />
+
+                <div className="relative z-10 flex flex-col items-start gap-2">
+                  <h4 className="font-bold text-lg flex items-center gap-2">
+                    ⏳ Subscription Active
+                  </h4>
+                  <p className="text-emerald-100 text-sm font-medium opacity-90">
+                    {Math.ceil(
+                      (subscriptionEnd.getTime() - now) / (1000 * 60 * 60 * 24)
+                    )}{" "}
+                    days remaining
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
@@ -314,7 +364,6 @@ export default function Analysis() {
             })()}
           </div>
 
-          {/* Detailed Breakdown (Locked) */}
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary to-purple-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
             <Card className="p-8 glass-card rounded-[1.8rem] relative overflow-hidden">
@@ -326,48 +375,18 @@ export default function Analysis() {
                   Detailed Biomarker Analysis
                 </h3>
               </div>
-
-              <div className="space-y-8 filter blur-sm select-none opacity-50 pointer-events-none">
-                {[1, 2, 3].map((i) => (
-                  <div key={i}>
-                    <div className="flex justify-between mb-2">
-                      <span className="font-medium flex items-center gap-2">
-                        <HeartPulse className="w-4 h-4" /> Total Cholesterol
-                      </span>
-                      <span className="font-mono bg-gray-100 px-2 rounded">
-                        210 mg/dL
-                      </span>
-                    </div>
-                    <div className="h-4 bg-muted rounded-full overflow-hidden relative">
-                      <div className="h-full bg-gradient-to-r from-green-400 to-yellow-400 w-3/4 rounded-full"></div>
-                    </div>
-                  </div>
-                ))}
+              <div
+                className={
+                  !canViewFullReport
+                    ? "blur-sm select-none opacity-50 pointer-events-none"
+                    : ""
+                }
+              >
+                <DetailedBiomarkerContent />
               </div>
 
-              {/* Lock Overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-white/40 backdrop-blur-[6px]">
-                <div className="bg-white/90 p-8 rounded-3xl shadow-2xl text-center max-w-sm border border-white/50 backdrop-blur-xl transform transition-transform hover:scale-105 duration-300">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/30">
-                    <Lock className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-2">
-                    Unlock Full Report
-                  </h3>
-                  <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
-                    Get deep insights into 45+ biomarkers, diet plans, and
-                    personalized health trends.
-                  </p>
-                  <Link href="/pricing">
-                    <Button
-                      size="lg"
-                      className="w-full rounded-xl h-12 text-md font-bold shadow-xl shadow-primary/20 bg-gradient-to-r from-primary to-purple-600 hover:to-purple-700 border-none"
-                    >
-                      Upgrade to Premium
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+              {/* LOCK OVERLAY */}
+              {!canViewFullReport && <LockedOverlay />}
             </Card>
           </div>
         </div>

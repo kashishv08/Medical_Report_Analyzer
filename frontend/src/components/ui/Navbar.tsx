@@ -36,11 +36,11 @@ export default function Navbar() {
               Home
             </a>
           </Link>
-          <Link href="/about">
+          {/* <Link href="/about">
             <a className="hover:text-emerald-600 transition-colors hover:scale-105 transform duration-200">
               How it Works
             </a>
-          </Link>
+          </Link> */}
           <Link href="/pricing">
             <a className="hover:text-emerald-600 transition-colors hover:scale-105 transform duration-200">
               Pricing
@@ -50,9 +50,9 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           <SignedOut>
-            <div className="cursor-pointer inline-block">
+            <Button className="cursor-pointer inline-block">
               <SignInButton />
-            </div>
+            </Button>
           </SignedOut>
           <SignedIn>
             <UserButton>
