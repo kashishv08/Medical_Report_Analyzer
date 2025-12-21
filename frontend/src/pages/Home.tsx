@@ -132,14 +132,14 @@ export default function Home() {
       // 3️⃣ AI Analysis
       const ai_result = await analyzeReport(fileText);
       if (!ai_result) {
-        toast("AI analysis failed");
+        toast("Uploaded file is not a valid report");
         return;
       }
       setProgress(70);
       console.log("ai res", ai_result);
 
       if (!ai_result.report_type || !ai_result.health_score) {
-        toast("AI analysis incomplete");
+        toast("Uploaded file is not a valid report");
         return;
       }
 

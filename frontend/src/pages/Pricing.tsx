@@ -199,6 +199,7 @@ export default function Pricing() {
           </ul>
 
           <Button
+            className="cursor-pointer"
             disabled={
               !isUserLoaded || // ⛔ block early clicks
               loadingPlan === "monthly" ||
@@ -259,6 +260,7 @@ export default function Pricing() {
           </ul>
 
           <Button
+            className="cursor-pointer"
             disabled={
               !isUserLoaded || loadingPlan === "yearly" || hasActiveSubscription
             }
