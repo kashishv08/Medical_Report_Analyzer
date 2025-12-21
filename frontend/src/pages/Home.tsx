@@ -131,8 +131,10 @@ export default function Home() {
 
       // 3️⃣ AI Analysis
       const ai_result = await analyzeReport(fileText);
-      if (!ai_result) {
-        toast("Uploaded file is not a valid report");
+      if (!ai_result || ai_result.error === "Invalid medical report") {
+        toast.error(
+          "This file does not appear to be a medical report. Please upload a valid medical report."
+        );
         return;
       }
       setProgress(70);
