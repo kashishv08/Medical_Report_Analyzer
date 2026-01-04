@@ -1,18 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  useAuth,
-  UserButton,
-} from "@clerk/clerk-react";
-import { LayoutPanelLeft, Leaf, Menu } from "lucide-react";
+import { useUserStore } from "@/store/userStore";
+import { SignedIn, SignedOut, useAuth, UserButton } from "@clerk/clerk-react";
+import { motion } from "framer-motion";
+import { DollarSignIcon, LayoutPanelLeft, Leaf } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export default function Navbar() {
   const [location, setLocation] = useLocation();
   const { userId } = useAuth();
+  const isPremium = useUserStore((s) => s.isPremium());
 
   if (location === "/" || location.startsWith("/dashboard")) return null;
 
@@ -31,16 +27,20 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-          <Link href="/">
+          <Link href="/home">
             <a className="hover:text-emerald-600 transition-colors hover:scale-105 transform duration-200">
               Home
             </a>
           </Link>
-          {/* <Link href="/about">
-            <a className="hover:text-emerald-600 transition-colors hover:scale-105 transform duration-200">
-              How it Works
-            </a>
-          </Link> */}
+          <button
+            onClick={() => {
+              const element = document.getElementById("how-it-works");
+              element?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="hover:text-emerald-600 transition-colors hover:scale-105 transform duration-200 cursor-pointer"
+          >
+            How it Works
+          </button>
           <Link href="/pricing">
             <a className="hover:text-emerald-600 transition-colors hover:scale-105 transform duration-200">
               Pricing
@@ -49,9 +49,27 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
+          {isPremium && (
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass border-emerald-200 text-emerald-800 text-sm font-bold shadow-xl shadow-emerald-900/5 backdrop-blur-md">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                Pro
+              </div>
+            </motion.div>
+          )}
           <SignedOut>
-            <Button className="cursor-pointer inline-block">
-              <SignInButton />
+            <Button
+              className="cursor-pointer inline-block"
+              onClick={() => setLocation("/sign-in")}
+            >
+              SignIn
             </Button>
           </SignedOut>
           <SignedIn>
@@ -63,10 +81,19 @@ export default function Navbar() {
                   onClick={() => setLocation(`/dashboard/${userId}`)}
                 />
               </UserButton.MenuItems>
+              {/* <div className="block md:hidden"> */}
+              <UserButton.MenuItems>
+                <UserButton.Action
+                  label="Pricing"
+                  labelIcon={<DollarSignIcon size={17} />}
+                  onClick={() => setLocation(`/pricing`)}
+                />
+              </UserButton.MenuItems>
+              {/* </div> */}
             </UserButton>
           </SignedIn>
 
-          <Sheet>
+          {/* <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="w-5 h-5" />
@@ -85,7 +112,7 @@ export default function Navbar() {
                 </Link>
               </div>
             </SheetContent>
-          </Sheet>
+          </Sheet> */}
         </div>
       </div>
     </nav>

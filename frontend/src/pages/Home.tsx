@@ -5,8 +5,9 @@ import { hashedFile } from "@/lib/services/pdfExtract/hashedFile";
 import { analyzeReport } from "@/lib/services/supabase/report/analyzeReport";
 import { uploadReportFile } from "@/lib/services/supabase/report/uploadFile";
 import { supabase } from "@/lib/services/supabase/supabaseclient";
-import { useSyncUser } from "@/lib/services/supabase/user/useSyncUser";
 import { useReportStore } from "@/store/reportStore";
+import { useUserStore } from "@/store/userStore";
+import type { ReportType } from "@/typedef";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
 import {
@@ -15,17 +16,17 @@ import {
   Brain,
   FileText,
   HeartPulse,
+  Leaf,
   Scan,
   ShieldCheck,
+  Upload,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import heroBg from "../assets/abstract_green_medical_dna_background.png";
-import type { ReportType } from "@/typedef";
-import { useUserStore } from "@/store/userStore";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -36,8 +37,6 @@ export default function Home() {
   const { user } = useUser();
   const { isSignedIn } = useAuth();
   const { isPremium } = useUserStore();
-
-  useSyncUser();
 
   const { loadReports, selectUserReports } = useReportStore();
   useEffect(() => {
@@ -127,7 +126,7 @@ export default function Home() {
         return;
       }
       setProgress(50);
-      console.log("extracted text", fileText.substring(0, 20));
+      // console.log("extracted text", fileText);
 
       // 3️⃣ AI Analysis
       const ai_result = await analyzeReport(fileText);
@@ -216,8 +215,8 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/60 to-white/95" />
       </div>
 
-      <div className="relative z-10 pt-32 pb-20 px-4">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
+      <div className="relative z-10 pt-28 md:pt-32 pb-20 px-4">
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
           {/* Left Column: Text */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -396,6 +395,161 @@ export default function Home() {
             </div>
           </motion.div>
         </div>
+
+        {/* How It Works Section */}
+        <section id="how-it-works" className="mt-32 mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-heading font-bold text-emerald-950 mb-4">
+              How It Works
+            </h2>
+            <p className="text-lg text-emerald-800/60 max-w-2xl mx-auto font-medium">
+              Three simple steps to unlock your medical data.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                step: "01",
+                title: "Upload Report",
+                desc: "Securely upload your lab results, MRI scans, or prescriptions in any common format.",
+                icon: <Upload className="w-8 h-8 text-emerald-600" />,
+              },
+              {
+                step: "02",
+                title: "AI Processing",
+                desc: "Our bio-neural engine analyzes your biomarkers against clinical benchmarks.",
+                icon: <Brain className="w-8 h-8 text-emerald-600" />,
+              },
+              {
+                step: "03",
+                title: "Get Insights",
+                desc: "Receive a plain-English summary and detailed breakdown of your health status.",
+                icon: <Activity className="w-8 h-8 text-emerald-600" />,
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+                className="glass rounded-[2rem] p-8 border-emerald-100 hover:shadow-2xl hover:shadow-emerald-900/5 transition-all group"
+              >
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    {item.icon}
+                  </div>
+                  <span className="text-4xl font-heading font-black text-emerald-400">
+                    {item.step}
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-emerald-950 mb-3">
+                  {item.title}
+                </h3>
+                <p className="text-emerald-800/60 font-medium leading-relaxed">
+                  {item.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        <footer className="mt-32 border-t border-emerald-100">
+          <div className="max-w-6xl mx-auto px-4 pt-16">
+            <div className="grid md:grid-cols-4 gap-12 mb-12">
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="bg-emerald-500 p-2 rounded-lg">
+                    <Leaf className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="font-heading font-bold text-xl tracking-tight text-emerald-950">
+                    BioScan<span className="text-emerald-600">.ai</span>
+                  </span>
+                </div>
+                <p className="text-emerald-800/60 font-medium max-w-sm leading-relaxed">
+                  Advanced bio-neural analysis engine transforming medical data
+                  into actionable health insights for everyone.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-emerald-950 mb-6">Product</h4>
+                <ul className="space-y-4 text-emerald-800/60 font-medium text-sm">
+                  <li>
+                    <button
+                      className="hover:text-emerald-600 transition-colors cursor-pointer"
+                      onClick={() => {
+                        const element = document.getElementById("how-it-works");
+                        element?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                    >
+                      How it Works
+                    </button>
+                  </li>
+                  <li>
+                    <Link
+                      href="/pricing"
+                      className="hover:text-emerald-600 transition-colors"
+                    >
+                      Pricing
+                    </Link>
+                  </li>
+                  <li>
+                    <a className="hover:text-emerald-600 transition-colors">
+                      AI Engine
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-emerald-950 mb-6">Company</h4>
+                <ul className="space-y-4 text-emerald-800/60 font-medium text-sm">
+                  <li>
+                    <a
+                      href="#"
+                      className="hover:text-emerald-600 transition-colors"
+                    >
+                      About Us
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#"
+                      className="hover:text-emerald-600 transition-colors"
+                    >
+                      Privacy Policy
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#"
+                      className="hover:text-emerald-600 transition-colors"
+                    >
+                      Terms of Service
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* FOOTER BOTTOM */}
+            <div className="border-t border-emerald-50 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-emerald-800 text-sm font-medium">
+                © 2026 BioScan.ai. All rights reserved.
+              </p>
+
+              <div className="flex items-center gap-2 text-emerald-800 font-medium text-sm">
+                <span>Made with</span>
+                <HeartPulse className="w-4 h-4 text-emerald-500 animate-pulse" />
+                <span>
+                  by <span className="text-emerald-950 font-bold">K.V.</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );

@@ -23,6 +23,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Link, useRoute } from "wouter";
 import dashboardBg from "../assets/subtle_medical_data_grid_background.png";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function Analysis() {
   const [, params] = useRoute("/analysis/:id");
@@ -33,6 +34,7 @@ export default function Analysis() {
     null
   ) as React.RefObject<HTMLDivElement>;
   const { user } = useUser();
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const { fetchUserById } = useUserStore();
 
@@ -72,11 +74,11 @@ export default function Analysis() {
   const isExpired = subscriptionEnd ? subscriptionEnd.getTime() < now : false;
 
   const canViewFullReport = isPremium && !isExpired;
-  // const fullData = canViewFullReport ? report?.ai_result.full_data : null;
 
   if (!report) return <div>Loading analysis...</div>;
 
   const ai = report?.ai_result ?? {};
+  console.log("ai", ai);
   const keyFindings = Array.isArray(ai.key_findings) ? ai.key_findings : [];
 
   const safe = (value: unknown, fallback: string = "Not available"): string =>
@@ -96,28 +98,56 @@ export default function Analysis() {
   const handleDownload = async () => {
     if (!pdfRef.current) return;
 
-    // Small delay so layout + fonts settle
-    await new Promise((r) => setTimeout(r, 300));
+    setIsDownloading(true);
 
-    const canvas = await html2canvas(pdfRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-    });
+    try {
+      await new Promise((r) => setTimeout(r, 300));
 
-    const imgData = canvas.toDataURL("image/png");
+      const canvas = await html2canvas(pdfRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
 
-    const pdf = new jsPDF("p", "mm", "a4");
+      const imgData = canvas.toDataURL("image/png");
 
-    const imgWidth = 210;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF("p", "mm", "a4");
 
-    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-    pdf.save("Medical_Report.pdf");
+      const pdfWidth = 210; // A4 width in mm
+      const pdfHeight = 297; // A4 height in mm
+      const topMargin = 10;
+      const bottomMargin = 10;
+      const usableHeight = pdfHeight - topMargin - bottomMargin;
+
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // First page
+      pdf.addImage(imgData, "PNG", 0, topMargin, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      // Remaining pages
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + topMargin;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= usableHeight;
+      }
+
+      pdf.save("Medical_Report.pdf");
+    } catch (err) {
+      console.error(err);
+      toast("Failed to generate PDF");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 font-sans relative top-0">
+    <div className="min-h-screen bg-background font-sans relative top-0 w-full">
       <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
         <img
           src={dashboardBg}
@@ -131,30 +161,32 @@ export default function Analysis() {
           <div className="container mx-auto px-4 h-20 flex items-center justify-between">
             <div className="flex justify-center  gap-4">
               <Link href={`/dashboard/${userId}`}>
-                <a>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="cursor-pointer rounded-full hover:bg-primary/10"
-                  >
-                    <ArrowLeft className="w-6 h-6 text-foreground" />
-                  </Button>
-                </a>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="cursor-pointer rounded-full hover:bg-primary/10"
+                >
+                  <ArrowLeft className="w-6 h-6 text-foreground" />
+                </Button>
               </Link>
 
-              {report.report_type && (
-                <div className="hidden md:flex flex-col text-center items-center gap-1">
-                  <div className="flex items-center gap-3">
-                    <h1 className="font-heading font-bold text-lg text-foreground">
-                      {report.report_type}{" "}
-                      {ai.report_date ? `- ${ai.report_date}` : ""}
+              {report?.report_type && (
+                <div className="flex flex-col gap-1 text-left">
+                  {/* Title + Status */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                    <h1 className="font-heading font-bold text-base sm:text-lg text-foreground">
+                      {report.report_type}
                     </h1>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+
+                    <span className="hidden md:flex w-fit px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
                       Completed
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Activity className="w-3 h-3" /> AI Analysis Score: 98/100
+
+                  {/* Score */}
+                  <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                    <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
+                    AI Analysis Score: 98/100
                   </p>
                 </div>
               )}
@@ -185,7 +217,8 @@ export default function Analysis() {
                   handleDownload();
                 }}
               >
-                <Download className="w-4 h-4" /> PDF
+                {isDownloading ? <Spinner /> : <Download className="w-4 h-4" />}{" "}
+                PDF
               </Button>
 
               {/* User Menu */}
@@ -207,7 +240,7 @@ export default function Analysis() {
               >
                 <span className="text-3xl font-bold text-white">
                   {" "}
-                  {safe(ai.health_score, "N/A")}
+                  {safe(ai?.health_score, "N/A")}
                 </span>
               </div>
               <h3 className="font-bold text-lg">Health Score</h3>
@@ -219,11 +252,11 @@ export default function Analysis() {
             <div className="space-y-4 text-sm mt-8">
               <div className="flex justify-between py-3 border-b border-dashed border-gray-200">
                 <span className="text-muted-foreground">Patient</span>
-                <span className="font-bold">{safe(ai.patient_name)}</span>
+                <span className="font-bold">{safe(ai?.patient_name)}</span>
               </div>
               <div className="flex justify-between py-3 border-b border-dashed border-gray-200">
                 <span className="text-muted-foreground">Lab Date</span>
-                <span className="font-bold">{safe(ai.report_date)}</span>
+                <span className="font-bold">{safe(ai?.report_date)}</span>
               </div>
             </div>
           </Card>
@@ -231,44 +264,47 @@ export default function Analysis() {
           <Card className="p-6 bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-3xl shadow-xl border-none relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10" />
             <h3 className="font-bold text-lg mb-4 relative z-10">AI Insight</h3>
-            <p className="text-indigo-100 text-sm leading-relaxed relative z-10">
-              {safe(ai.prediction)}
-            </p>
+            {Array.isArray(ai.prediction) && ai.prediction.length > 0 && (
+              <div className="text-indigo-100 text-sm leading-relaxed relative z-10 text-justify space-y-2">
+                {ai.prediction[0].reason}
+                {ai.prediction[0].insight}
+                {ai.prediction[0].prevention_tip}
+                <br />
+                {ai.prediction[1].reason}
+                {ai.prediction[1].insight}
+                {ai.prediction[1].prevention_tip}
+              </div>
+            )}
             <div className="mt-6 flex items-center gap-2 text-xs font-mono text-indigo-300">
               <Brain className="w-4 h-4" /> MEDISCAN-NEURAL-V2
             </div>
           </Card>
 
           {isPremium && !isExpired && subscriptionEnd && (
-            <div className="p-6 w-[100%]">
-              <div className="bg-gradient-to-br from-emerald-600 to-teal-500 rounded-[1.5rem] p-6 text-white shadow-xl shadow-emerald-900/20 relative overflow-hidden group">
-                {/* Decorative Blur Circle */}
-                <div className="absolute top-0 right-0 w-42 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl group-hover:scale-150 transition-transform duration-700" />
+            <Card className="p-6 bg-gradient-to-br from-emerald-600 to-teal-500 text-white rounded-3xl shadow-xl shadow-emerald-900/20 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl" />
 
-                <div className="relative z-10 flex flex-col items-start gap-2">
-                  <h4 className="font-bold text-lg flex items-center gap-2">
-                    ⏳ Subscription Active
-                  </h4>
-                  <p className="text-emerald-100 text-sm font-medium opacity-90">
-                    {Math.ceil(
-                      (subscriptionEnd.getTime() - now) / (1000 * 60 * 60 * 24)
-                    )}{" "}
-                    days remaining
-                  </p>
-                </div>
+              <div className="relative z-10 flex flex-col items-start gap-2">
+                <h4 className="font-bold text-lg flex items-center gap-2">
+                  ⏳ Subscription Active
+                </h4>
+                <p className="text-emerald-100 text-sm font-medium opacity-90">
+                  {Math.ceil(
+                    (subscriptionEnd.getTime() - now) / (1000 * 60 * 60 * 24)
+                  )}{" "}
+                  days remaining
+                </p>
               </div>
-            </div>
+            </Card>
           )}
         </div>
 
-        {/* Main Content */}
         <div className="lg:col-span-8 space-y-6">
-          {/* Executive Summary */}
-          <Card className="p-8 glass-card rounded-3xl border-l-8 border-l-primary relative overflow-hidden">
+          <Card className="p-8 glass-card rounded-3xl border-l-8 border-l-primary relative overflow-hidden text-justify">
             <div className="absolute top-0 right-0 p-8 opacity-5">
               <FileText className="w-32 h-32" />
             </div>
-            <h2 className="text-2xl font-heading font-bold mb-1 flex items-center gap-3">
+            <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
               Executive Summary
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl">
@@ -276,23 +312,30 @@ export default function Analysis() {
             </p>
           </Card>
 
-          {/* Key Findings Grid (Normal & Warning Only) */}
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-4 text-justify">
             {(() => {
-              // First, filter normal & warning
-              let filtered = keyFindings.filter(
-                (f) => f.status === "normal" || f.status === "warning"
+              const normals = keyFindings?.filter((f) => f.status === "normal");
+              const warnings = keyFindings.filter(
+                (f) => f.status === "warning"
+              );
+              const criticals = keyFindings.filter(
+                (f) => f.status === "critical"
               );
 
-              // If no normal/warning found, fallback to critical
-              if (filtered.length === 0) {
-                filtered = keyFindings.filter((f) => f.status === "critical");
+              let displayList = [...normals, ...warnings, ...criticals];
+
+              if (displayList.length < 2) {
+                const remaining = keyFindings.filter(
+                  (f) => !displayList.includes(f)
+                );
+                displayList = [...displayList, ...remaining];
               }
 
-              return filtered.map((f, idx: number) => {
+              displayList = displayList.slice(0, 2);
+
+              return displayList.map((f, idx) => {
                 const isNormal = f.status === "normal";
                 const isWarning = f.status === "warning";
-                // const isCritical = f.status === "critical";
 
                 return (
                   <div
@@ -367,7 +410,7 @@ export default function Analysis() {
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary to-purple-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
             <Card className="p-8 glass-card rounded-[1.8rem] relative overflow-hidden">
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-0">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Activity className="w-5 h-5 text-primary" />
                 </div>
@@ -376,13 +419,13 @@ export default function Analysis() {
                 </h3>
               </div>
               <div
-                className={
+                className={`relative h-[400px] ${
                   !canViewFullReport
                     ? "blur-sm select-none opacity-50 pointer-events-none"
                     : ""
-                }
+                }`}
               >
-                <DetailedBiomarkerContent />
+                <DetailedBiomarkerContent ai={ai} />
               </div>
 
               {/* LOCK OVERLAY */}

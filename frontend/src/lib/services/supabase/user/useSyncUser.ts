@@ -1,47 +1,37 @@
 import { useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { supabase } from "../supabaseclient";
-import { UserSchema } from "../../zod/userValidations";
 
 export function useSyncUser() {
   const { user } = useUser();
-
-  // console.log(user);
+  console.log("user", user);
 
   useEffect(() => {
-    const insertData = async () => {
-      if (!user) return;
+    if (!user) return;
 
-      const userObj = {
-        id: user.id,
-        email: user.primaryEmailAddress?.emailAddress,
-        name: user.fullName,
-        dob: "",
-        stripe_customer_id: "",
-        subscription_end: "",
-        subscription_start: "",
-        stripe_subscription_id: "",
-      };
+    const syncUser = async () => {
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", user.id)
+        .single();
 
-      const parsed = UserSchema.safeParse(userObj);
-      if (!parsed.success) {
-        console.error("Invalid user data:", parsed.error);
+      if (existingUser) {
+        console.log("User already exists, skipping insert");
         return;
       }
 
-      await supabase.from("users").upsert({
+      const { error: insertError } = await supabase.from("users").insert({
         id: user.id,
         email: user.primaryEmailAddress?.emailAddress,
         name: user.fullName,
-        dob: null,
-        stripe_customer_id: null,
-        subscription_end: null,
-        subscription_start: null,
-        subscription_status: false,
-        stripe_subscription_id: null,
       });
+
+      if (insertError) {
+        console.error("Insert failed:", insertError);
+      }
     };
 
-    insertData();
+    syncUser();
   }, [user]);
 }

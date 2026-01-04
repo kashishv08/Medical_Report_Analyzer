@@ -9,6 +9,7 @@ import { SignIn, SignUp } from "@clerk/clerk-react";
 import AuthLayout from "./components/layouts/AuthLayout";
 import ProtectedRoute from "./lib/middleware/ProtectedRoute";
 import Pricing from "./pages/Pricing";
+import { useSyncUser } from "./lib/services/supabase/user/useSyncUser";
 
 function Router() {
   const [location] = useLocation();
@@ -16,22 +17,23 @@ function Router() {
     location.startsWith("/sign-in") ||
     location.startsWith("sign-up") ||
     location.startsWith("/analysis");
+  useSyncUser();
+
   return (
     <>
-      <Route path="/sign-in/:rest*?">
-        <AuthLayout>
-          <SignIn routing="path" path="/sign-in" afterSignInUrl={"/home"} />
-        </AuthLayout>
-      </Route>
-
-      <Route path="/sign-in/:rest*?">
-        <AuthLayout>
-          <SignUp routing="path" path="/sign-up" />
-        </AuthLayout>
-      </Route>
-
       {!hideNavbar && <Navbar />}
       <Switch>
+        <Route path="/sign-in/:rest*?">
+          <AuthLayout>
+            <SignIn routing="path" path="/sign-in" afterSignInUrl={"/home"} />
+          </AuthLayout>
+        </Route>
+
+        <Route path="/sign-in/:rest*?">
+          <AuthLayout>
+            <SignUp routing="path" path="/sign-up" />
+          </AuthLayout>
+        </Route>
         <Route path="/" component={Splash} />
         <Route path="/home" component={Home} />
 
@@ -46,9 +48,9 @@ function Router() {
           </ProtectedRoute>
         </Route>
         <Route path={"/pricing"}>
-          <ProtectedRoute>
-            <Pricing />
-          </ProtectedRoute>
+          {/* <ProtectedRoute> */}
+          <Pricing />
+          {/* </ProtectedRoute> */}
         </Route>
       </Switch>
     </>

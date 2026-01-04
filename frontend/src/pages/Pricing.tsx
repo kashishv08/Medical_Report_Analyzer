@@ -42,15 +42,20 @@ export default function Pricing() {
   const isExpired = subscriptionEnd ? subscriptionEnd.getTime() < now : false;
 
   const handleSubscribe = async (planKey: "monthly" | "yearly") => {
+    if (!isSignedIn) {
+      toast.info("Please sign in to continue");
+
+      setTimeout(() => {
+        setLocation("/sign-in");
+      }, 800);
+
+      return;
+    }
+
     if (!userFromDB) return;
 
     if (isPremium === true && !isExpired) {
       toast("You already have an active subscription");
-      return;
-    }
-
-    if (!isSignedIn) {
-      setLocation("/sign-in");
       return;
     }
 
@@ -60,7 +65,7 @@ export default function Pricing() {
     }
 
     try {
-      setLoadingPlan(planKey); // 🔥 START LOADING
+      setLoadingPlan(planKey);
 
       const plan = PRICING_PLANS[planKey];
 
@@ -200,11 +205,7 @@ export default function Pricing() {
 
           <Button
             className="cursor-pointer"
-            disabled={
-              !isUserLoaded || // ⛔ block early clicks
-              loadingPlan === "monthly" ||
-              hasActiveSubscription
-            }
+            disabled={loadingPlan === "monthly" || hasActiveSubscription}
             onClick={() => handleSubscribe("monthly")}
           >
             {hasActiveSubscription && activePlan === "monthly"
@@ -261,9 +262,7 @@ export default function Pricing() {
 
           <Button
             className="cursor-pointer"
-            disabled={
-              !isUserLoaded || loadingPlan === "yearly" || hasActiveSubscription
-            }
+            disabled={loadingPlan === "yearly" || hasActiveSubscription}
             onClick={() => handleSubscribe("yearly")}
           >
             {hasActiveSubscription && activePlan === "yearly"
