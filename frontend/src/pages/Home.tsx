@@ -27,6 +27,7 @@ import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 import heroBg from "../assets/abstract_green_medical_dna_background.png";
+import { AIResultSchema } from "@/lib/services/zod/reportValidation";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -129,8 +130,23 @@ export default function Home() {
       // console.log("extracted text", fileText);
 
       // 3️⃣ AI Analysis
-      const ai_result = await analyzeReport(fileText);
-      if (!ai_result || ai_result.error === "Invalid medical report") {
+      // const ai_result = await analyzeReport(fileText);
+
+      const rawAIResult = await analyzeReport(fileText);
+
+      const parsed = AIResultSchema.safeParse(rawAIResult);
+
+      if (!parsed.success) {
+        console.error("AI schema validation failed", parsed.error);
+        toast.error(
+          "AI returned incomplete or invalid data. Please try again."
+        );
+        return;
+      }
+
+      const ai_result = parsed.data;
+
+      if (!ai_result || ai_result?.error === "Invalid medical report") {
         toast.error(
           "This file does not appear to be a medical report. Please upload a valid medical report."
         );
@@ -173,6 +189,13 @@ export default function Home() {
       upsertReport(savedReport); //store zustand
 
       setProgress(90);
+
+      if (
+        ai_result.key_findings.length === 0 &&
+        ai_result.detailed_metrics.length === 0
+      ) {
+        toast("Analysis completed, but limited data was found in this report.");
+      }
 
       setLocation(`/analysis/${savedReport.id}`);
     } catch (err) {

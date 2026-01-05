@@ -41,11 +41,11 @@ export function DetailedBiomarkerContent({ ai }: { ai: aiResType }) {
       )}
 
       {/* Diagnoses */}
-      {ai?.full_data?.diagnoses?.length > 0 && (
+      {ai?.full_data?.diagnoses && ai.full_data.diagnoses.length > 0 && (
         <div className="space-y-2">
           <h3 className="font-bold text-xl">Diagnoses</h3>
           <ul className="list-disc pl-5 text-sm text-muted-foreground">
-            {ai?.full_data.diagnoses.map((d: string, i: number) => (
+            {ai?.full_data?.diagnoses.map((d: string, i: number) => (
               <li key={i}>{d}</li>
             ))}
           </ul>
@@ -81,16 +81,17 @@ export function DetailedBiomarkerContent({ ai }: { ai: aiResType }) {
         )}
 
       {/* Observations */}
-      {ai?.full_data?.observations?.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="font-bold text-xl">Observations</h3>
-          <ul className="list-disc pl-5 text-sm text-muted-foreground">
-            {ai?.full_data.observations.map((o: string, i: number) => (
-              <li key={i}>{o}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {ai?.full_data?.observations?.length &&
+        ai?.full_data?.observations?.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-bold text-xl">Observations</h3>
+            <ul className="list-disc pl-5 text-sm text-muted-foreground">
+              {ai?.full_data.observations.map((o: string, i: number) => (
+                <li key={i}>{o}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
       {/* Predictions */}
       {ai?.prediction?.length > 0 && (

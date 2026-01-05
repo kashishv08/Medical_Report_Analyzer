@@ -264,17 +264,23 @@ export default function Analysis() {
           <Card className="p-6 bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-3xl shadow-xl border-none relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10" />
             <h3 className="font-bold text-lg mb-4 relative z-10">AI Insight</h3>
-            {Array.isArray(ai.prediction) && ai.prediction.length > 0 && (
-              <div className="text-indigo-100 text-sm leading-relaxed relative z-10 text-justify space-y-2">
-                {ai.prediction[0].reason}
-                {ai.prediction[0].insight}
-                {ai.prediction[0].prevention_tip}
-                <br />
-                {ai.prediction[1].reason}
-                {ai.prediction[1].insight}
-                {ai.prediction[1].prevention_tip}
-              </div>
+            {Array.isArray(ai.prediction) && ai.prediction.length > 0 ? (
+              <p className="text-indigo-100 text-sm leading-relaxed relative z-10 text-justify">
+                {ai.prediction
+                  .slice(0, 2)
+                  .map((p) =>
+                    [p?.reason, p?.insight, p?.prevention_tip]
+                      .filter(Boolean)
+                      .join(" ")
+                  )
+                  .join(" ")}
+              </p>
+            ) : (
+              <p className="text-indigo-200 text-sm italic">
+                No predictive insights available for this report.
+              </p>
             )}
+
             <div className="mt-6 flex items-center gap-2 text-xs font-mono text-indigo-300">
               <Brain className="w-4 h-4" /> MEDISCAN-NEURAL-V2
             </div>
