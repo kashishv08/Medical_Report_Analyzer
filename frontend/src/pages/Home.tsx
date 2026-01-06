@@ -239,7 +239,7 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 pt-28 md:pt-32 pb-20 px-4">
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
+        <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
           {/* Left Column: Text */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -289,25 +289,8 @@ export default function Home() {
           </motion.div>
 
           {/* Right Column: Upload Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
-            className="relative perspective-1000"
-          >
-            {/* Decorative floating elements */}
-            <motion.div
-              animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-emerald-400 to-teal-300 rounded-[2rem] blur-2xl opacity-30 z-0"
-            />
-            <motion.div
-              animate={{ y: [0, 20, 0], rotate: [0, -5, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -bottom-8 -left-8 w-40 h-40 bg-gradient-to-tr from-green-300 to-lime-200 rounded-full blur-3xl opacity-30 z-0"
-            />
-
-            <div className="glass-card rounded-[2.5rem] p-2 relative z-10 overflow-hidden group hover:shadow-2xl hover:shadow-emerald-900/10 transition-all duration-500 transform hover:-translate-y-2">
+          <div className="relative w-full max-w-full overflow-hidden perspective-1000 ">
+            <div className="glass-card rounded-[2.5rem] p-2 relative z-10 overflow-hidden group hover:shadow-2xl transition-all duration-500 will-change-transform">
               <div className="bg-white/40 backdrop-blur-xl rounded-[2rem] p-8 h-full border border-white/60">
                 {!files.length ? (
                   <div
@@ -342,7 +325,6 @@ export default function Home() {
                       </p>
                       <p className="text-base text-emerald-800/60 max-w-[240px] mx-auto font-medium">
                         Supports PDF, JPG, PNG <br />
-                        up to 50MB
                       </p>
                     </div>
 
@@ -359,11 +341,11 @@ export default function Home() {
                       <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg text-emerald-600 ring-1 ring-emerald-100">
                         <FileText className="w-10 h-10" />
                       </div>
-                      <div className="text-left flex-1 min-w-0">
+                      <div className="text-left flex-1 min-w-0 overflow-hidden">
                         <p className="font-bold text-xl truncate text-foreground mb-1">
                           {files[0].name}
                         </p>
-                        <p className="text-sm text-emerald-800/60 font-medium">
+                        <p className="font-bold text-xl truncate text-foreground mb-1 max-w-full">
                           {(files[0].size / 1024 / 1024).toFixed(2)} MB • Ready
                           for analysis
                         </p>
@@ -416,7 +398,7 @@ export default function Home() {
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* How It Works Section */}
